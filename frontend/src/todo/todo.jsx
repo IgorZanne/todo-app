@@ -14,16 +14,20 @@ class Todo extends Component {
 
     this.handleChange = this.handleChange.bind(this);
     this.handleAdd = this.handleAdd.bind(this);
+    this.handleSearch = this.handleSearch.bind(this);
     this.handleRemove = this.handleRemove.bind(this);
+    this.handleMaskAsDone = this.handleMaskAsDone.bind(this);
+    this.handleMarkAsPending = this.handleMarkAsPending.bind(this);
 
     this.refresh();
   }
 
-  refresh() {
+  refresh(description = "") {
+    const search = description ? `&description__regex=/${description}/` : "";
     axios
-      .get(`${URL}?sort=-createdAt`)
+      .get(`${URL}?sort=-createdAt${search}`)
       .then(resp =>
-        this.setState({ ...this.state, description: "", list: resp.data })
+        this.setState({ ...this.state, description, list: resp.data })
       );
   }
 
@@ -36,8 +40,26 @@ class Todo extends Component {
     axios.post(URL, { description }).then(resp => this.refresh());
   }
 
+  handleSearch() {
+    this.refresh(this.state.description);
+  }
+
   handleRemove(todo) {
-    axios.delete(`${URL}/${todo._id}`).then(resp => this.refresh());
+    axios
+      .delete(`${URL}/${todo._id}`)
+      .then(resp => this.refresh(this.state.description));
+  }
+
+  handleMaskAsDone(todo) {
+    axios
+      .put(`${URL}/${todo._id}`, { ...todo, done: true })
+      .then(resp => this.refresh(this.state.description));
+  }
+
+  handleMarkAsPending(todo) {
+    axios
+      .put(`${URL}/${todo._id}`, { ...todo, done: false })
+      .then(resp => this.refresh(this.state.description));
   }
 
   render() {
@@ -48,8 +70,14 @@ class Todo extends Component {
           description={this.state.description}
           handleChange={this.handleChange}
           handleAdd={this.handleAdd}
+          handleSearch={this.handleSearch}
         />
-        <TodoList list={this.state.list} handleRemove={this.handleRemove} />
+        <TodoList
+          list={this.state.list}
+          handleMaskAsDone={this.handleMaskAsDone}
+          handleMarkAsPending={this.handleMarkAsPending}
+          handleRemove={this.handleRemove}
+        />
       </div>
     );
   }
